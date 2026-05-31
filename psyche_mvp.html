@@ -89,13 +89,30 @@
   .dmgFloat.blk{color:var(--block);font-size:22px} .dmgFloat.hurt{color:var(--hp)} .dmgFloat.crit{color:#fff;font-size:42px}
   .vignette{position:fixed;inset:0;pointer-events:none;z-index:9;box-shadow:inset 0 0 0 0 rgba(177,92,92,0);transition:box-shadow .09s ease}
   .vignette.flash{box-shadow:inset 0 0 130px 34px rgba(177,92,92,.5)}
-  .enemy-form{display:flex;justify-content:center;align-items:center;height:90px;margin:2px 0 -2px}
-  .form-shape{width:78px;height:78px;position:relative;border:1px solid rgba(255,255,255,.07);border-radius:42% 58% 56% 44%/52% 46% 54% 48%;animation:morph 6s ease-in-out infinite,breathe 3.4s ease-in-out infinite;filter:drop-shadow(0 7px 16px rgba(0,0,0,.5))}
-  .form-shape .fg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:30px;color:rgba(255,255,255,.82);text-shadow:0 1px 6px rgba(0,0,0,.5)}
-  .form-shape.hit{animation:morph 6s ease-in-out infinite,recoil .32s ease}
-  @keyframes morph{0%,100%{border-radius:42% 58% 56% 44%/52% 46% 54% 48%}50%{border-radius:55% 45% 47% 53%/46% 55% 45% 54%}}
-  @keyframes breathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-3px) scale(1.045)}}
-  @keyframes recoil{0%{transform:scale(1)}30%{transform:scale(.84) translateY(5px);filter:brightness(2.2)}100%{transform:scale(1)}}
+  .enemy-form{display:flex;justify-content:center;align-items:center;height:138px;margin:2px 0 -4px}
+  .figure{width:130px;height:130px;position:relative;filter:drop-shadow(0 10px 18px rgba(0,0,0,.55));animation:breathe 3.6s ease-in-out infinite}
+  .figure svg{display:block;width:100%;height:100%;overflow:visible}
+  .figure.hit{animation:recoil .34s ease}
+  /* arketipe özgü hareket: figürün içindeki .anim parçaları */
+  .spin{transform-box:fill-box;transform-origin:center;animation:spin 9s linear infinite}
+  .spin-f{transform-box:fill-box;transform-origin:center;animation:spin 5s linear infinite reverse}
+  .jitter{transform-box:fill-box;transform-origin:center;animation:jitter .5s steps(2,end) infinite}
+  .drip{animation:drip 3.4s ease-in infinite}
+  .sway{transform-box:fill-box;transform-origin:center top;animation:sway 4.2s ease-in-out infinite}
+  .flick{animation:flick 2.6s ease-in-out infinite}
+  .pupil{transform-box:fill-box;transform-origin:center;animation:scan 5s ease-in-out infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes jitter{0%{transform:translate(-1.5px,1px) rotate(-1deg)}100%{transform:translate(1.5px,-1px) rotate(1deg)}}
+  @keyframes drip{0%,55%{transform:translateY(0);opacity:0}70%{opacity:.85}100%{transform:translateY(26px);opacity:0}}
+  @keyframes sway{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+  @keyframes flick{0%,100%{opacity:.4}50%{opacity:1}}
+  @keyframes scan{0%,100%{transform:translateX(-3px)}50%{transform:translateX(3px)}}
+  @keyframes breathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-4px) scale(1.03)}}
+  @keyframes recoil{0%{transform:scale(1)}26%{transform:scale(.86) translate(0,6px);filter:brightness(2.4)}100%{transform:scale(1)}}
+  /* oyuncu figürü (psikanalist) */
+  .pfig{width:46px;height:46px;flex:0 0 auto;filter:drop-shadow(0 4px 7px rgba(0,0,0,.5))}
+  .pfig svg{display:block;width:100%;height:100%;overflow:visible}
+  .pfig.hurt{animation:recoil .3s ease}
   .cart{height:30px;border-radius:6px;margin:1px 0;display:flex;align-items:center;justify-content:center;font-size:18px;color:rgba(255,255,255,.55);border:1px solid var(--line)}
   .type-Saldırı .cart{background:linear-gradient(135deg,rgba(177,92,92,.28),rgba(177,92,92,.05))}
   .type-Savunma .cart{background:linear-gradient(135deg,rgba(111,143,168,.28),rgba(111,143,168,.05))}
@@ -131,6 +148,7 @@
     </div>
     <div class="log" id="log"></div>
     <div class="player">
+      <span id="pFigWrap"></span>
       <div class="stat"><span class="k">Bütünlük</span><span class="v hp" id="pHp">80</span></div>
       <div class="stat"><span class="k">Savunma</span><span class="v block" id="pBlock">0</span></div>
       <div class="stat"><span class="k">Ego</span><span class="pips" id="pPips"></span></div>
@@ -188,7 +206,56 @@
     bekletme:{name:'Bekletilmiş Hamle',cost:0,type:'Saldırı',read:true,text:'Kalan her Ego için 5 hasar. Ego’n tükenir.',dmgFn:s=>s.player.energy*5,after:s=>{s.player.energy=0;}},
     tortu:{name:'Tortu',cost:1,type:'Savunma',read:true,text:'Atık destendeki kart başına 1 savunma (en çok 13).',blockFn:s=>Math.min(13,s.discard.length)}
   };
-  const FORMS={bastirma:{g:'❋',c:'#b0827f'},inkar:{g:'◈',c:'#7f93b0'},kaygi:{g:'≋',c:'#b0a87f'},suphe:{g:'⟁',c:'#a87fb0'},yas:{g:'❂',c:'#8a8f99'}};
+  // Prosedürel SVG figürler — her arketip kendi silüeti + canlanması (asset yok)
+  function fig(inner){return '<div class="figure"><svg viewBox="0 0 100 100">'+inner+'</svg></div>';}
+  const FORMS={
+    // Bastırma Yumağı — sıkı sarılı düğüm; iç içe dönen halkalar, bastırıp tutan
+    bastirma:{c:'#b0827f',svg:()=>fig(
+      '<defs><radialGradient id="gB" cx="40%" cy="35%"><stop offset="0%" stop-color="#d8a9a3"/><stop offset="70%" stop-color="#9c6460"/><stop offset="100%" stop-color="#43302f"/></radialGradient></defs>'+
+      '<circle cx="50" cy="52" r="34" fill="url(#gB)" stroke="#2a1d1c" stroke-width="1.5"/>'+
+      '<g class="spin" stroke="#5e3f3c" stroke-width="3" fill="none" opacity=".8"><ellipse cx="50" cy="52" rx="30" ry="13"/><ellipse cx="50" cy="52" rx="13" ry="30"/><ellipse cx="50" cy="52" rx="23" ry="23"/></g>'+
+      '<g class="spin-f" stroke="#caa19c" stroke-width="1.5" fill="none" opacity=".7"><ellipse cx="50" cy="52" rx="27" ry="9" transform="rotate(35 50 52)"/><ellipse cx="50" cy="52" rx="27" ry="9" transform="rotate(-35 50 52)"/></g>'+
+      '<circle cx="50" cy="52" r="6" fill="#2a1d1c"/>')},
+    // İnkar Kabuğu — kapalı zırh plakaları, içte sızan bir ışık
+    inkar:{c:'#7f93b0',svg:()=>fig(
+      '<defs><linearGradient id="gI" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#aebfd6"/><stop offset="100%" stop-color="#3c4a60"/></linearGradient></defs>'+
+      '<circle cx="50" cy="52" r="33" fill="#10151d"/>'+
+      '<g class="flick"><circle cx="50" cy="52" r="14" fill="#cfe0f5" opacity=".5"/></g>'+
+      '<g stroke="#1a2330" stroke-width="1.5"><path d="M50 19 A33 33 0 0 1 81 50 L50 52 Z" fill="url(#gI)"/>'+
+      '<path d="M81 50 A33 33 0 0 1 58 83 L50 52 Z" fill="url(#gI)" opacity=".92"/>'+
+      '<path d="M58 83 A33 33 0 0 1 22 70 L50 52 Z" fill="url(#gI)" opacity=".84"/>'+
+      '<path d="M22 70 A33 33 0 0 1 23 33 L50 52 Z" fill="url(#gI)" opacity=".9"/>'+
+      '<path d="M23 33 A33 33 0 0 1 50 19 L50 52 Z" fill="url(#gI)" opacity=".96"/></g>')},
+    // Kaygı Sarmalı — dışa doğru genişleyen spiral, sürekli dönen
+    kaygi:{c:'#b0a87f',svg:()=>fig(
+      '<defs><radialGradient id="gK" cx="50%" cy="50%"><stop offset="0%" stop-color="#e6dca8"/><stop offset="100%" stop-color="#5c5630"/></radialGradient></defs>'+
+      '<circle cx="50" cy="52" r="33" fill="#1c1b12" opacity=".55"/>'+
+      '<g class="spin"><path d="M50 52 m0 0 a3 3 0 1 1 6 0 a8 8 0 1 1 -16 0 a14 14 0 1 1 28 0 a20 20 0 1 1 -40 0 a26 26 0 1 1 52 0 a31 31 0 1 1 -62 0" fill="none" stroke="url(#gK)" stroke-width="3.4" stroke-linecap="round"/></g>'+
+      '<circle cx="50" cy="52" r="4" fill="#e6dca8" class="flick"/>')},
+    // Şüphe — tek, izleyen göz; sürekli sağa-sola tarayan bebek
+    suphe:{c:'#a87fb0',svg:()=>fig(
+      '<defs><radialGradient id="gS" cx="50%" cy="50%"><stop offset="0%" stop-color="#e8d6ef"/><stop offset="60%" stop-color="#9a76ab"/><stop offset="100%" stop-color="#2c2030"/></radialGradient></defs>'+
+      '<path d="M14 52 Q50 22 86 52 Q50 82 14 52 Z" fill="#15101a" stroke="#3a2c44" stroke-width="2"/>'+
+      '<ellipse cx="50" cy="52" rx="30" ry="22" fill="url(#gS)"/>'+
+      '<g class="pupil"><circle cx="50" cy="52" r="11" fill="#1a1020"/><circle cx="46" cy="48" r="3" fill="#e8d6ef" opacity=".9"/></g>'+
+      '<path d="M14 52 Q50 22 86 52" fill="none" stroke="#c8a9d6" stroke-width="1.5" opacity=".6"/>')},
+    // Yas — eğilen, ağlayan örtülü figür; sallanır ve damlar
+    yas:{c:'#8a8f99',svg:()=>fig(
+      '<defs><linearGradient id="gY" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#9aa0aa"/><stop offset="100%" stop-color="#2d3138"/></linearGradient></defs>'+
+      '<g class="sway"><path d="M50 16 C30 16 26 40 26 56 C26 78 36 88 50 88 C64 88 74 78 74 56 C74 40 70 16 50 16 Z" fill="url(#gY)" stroke="#1c2026" stroke-width="1.5"/>'+
+      '<path d="M50 16 C38 16 33 32 33 48 L67 48 C67 32 62 16 50 16 Z" fill="#10131a" opacity=".55"/>'+
+      '<ellipse cx="50" cy="40" rx="13" ry="10" fill="#0c0e13"/></g>'+
+      '<circle class="drip" cx="43" cy="50" r="2.6" fill="#aeb8c8"/>'+
+      '<circle class="drip" cx="57" cy="52" r="2.2" fill="#aeb8c8" style="animation-delay:1.5s"/>')}
+  };
+  // Oyuncu — psikanalist: koltuk + not defteri silüeti
+  function playerFig(){return '<div class="pfig" id="pFig"><svg viewBox="0 0 100 100">'+
+    '<defs><radialGradient id="gP" cx="42%" cy="34%"><stop offset="0%" stop-color="#a9d2c8"/><stop offset="100%" stop-color="#34514b"/></radialGradient></defs>'+
+    '<ellipse cx="50" cy="88" rx="26" ry="6" fill="#000" opacity=".35"/>'+
+    '<circle cx="50" cy="34" r="16" fill="url(#gP)" stroke="#1d2c29" stroke-width="1.5"/>'+
+    '<path d="M28 86 C28 60 40 52 50 52 C60 52 72 60 72 86 Z" fill="url(#gP)" stroke="#1d2c29" stroke-width="1.5"/>'+
+    '<rect x="40" y="64" width="20" height="15" rx="2" fill="#1d2c29"/><line x1="44" y1="69" x2="56" y2="69" stroke="#a9d2c8" stroke-width="1.4"/><line x1="44" y1="73" x2="56" y2="73" stroke="#a9d2c8" stroke-width="1.4"/>'+
+    '</svg></div>';}
   const STARTER=['yorumlama','yorumlama','yorumlama','sinir','sinir','sinir','imge','ofke','ruya','telkin','toparlanma','icekapanis','dikkat','serbest'];
   const REWARD_POOL=['yuzlesme','saplanti','tahliye','berkitme','aydinlanma','sublimasyon','dayaniklilik','yansitma','bosalma','dipdalga','bekletme','tortu'];
   const ENEMIES=[
@@ -272,7 +339,7 @@
     if(d>0)floatNum(host,d,d>=18?'crit':'');else if(blocked>0)floatNum(host,'blok','blk');}
   function dmgPlayer(a){let d=a,blocked=0;if(S.player.block>0){const ab=Math.min(S.player.block,d);S.player.block-=ab;d-=ab;blocked=ab;}S.player.hp=Math.max(0,S.player.hp-d);
     const host=document.querySelector('.player');
-    if(d>0){flashVig();shake(d>=14);floatNum(host,'-'+d,'hurt');}else if(blocked>0)floatNum(host,'blok','blk');}
+    if(d>0){flashVig();shake(d>=14);floatNum(host,'-'+d,'hurt');const pf=el('pFig');if(pf){pf.classList.remove('hurt');void pf.offsetWidth;pf.classList.add('hurt');}}else if(blocked>0)floatNum(host,'blok','blk');}
 
   function playCard(idx){
     if(S.over||S.flow!=='combat') return;
@@ -404,10 +471,11 @@
   function render(){
     el('turnLbl').textContent='Tur '+S.turn;
     renderTrack();
+    const pw=el('pFigWrap'); if(pw && !pw.firstChild) pw.innerHTML=playerFig();
     if(!S.enemy) return;
     el('eName').textContent=S.enemy.name; el('eSub').textContent=S.enemy.sub;
     const fEl=el('eForm'), f=FORMS[S.enemy.id];
-    if(f && fEl.dataset.k!==S.enemy.id){ fEl.dataset.k=S.enemy.id; fEl.innerHTML='<div class="form-shape" style="background:radial-gradient(circle at 38% 34%,'+f.c+',#15171a 78%)"><span class="fg">'+f.g+'</span></div>'; }
+    if(f && fEl.dataset.k!==S.enemy.id){ fEl.dataset.k=S.enemy.id; fEl.innerHTML=f.svg?f.svg():''; }
     const pct=(S.enemy.hp/S.enemy.maxHp)*100;
     el('eBar').style.width=pct+'%'; el('eBarNum').textContent=S.enemy.hp+' / '+S.enemy.maxHp;
     const it=S.enemy.intent; const iEl=el('intent'); let cls='intent',lbl='niyet',val='—';

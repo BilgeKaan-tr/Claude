@@ -121,6 +121,18 @@ Bu dosyayı her **mimari** karar değişikliğinde güncelle. Sayı/denge ayarı
 
 ## DEĞİŞİKLİK KAYDI
 
+### 2026-05-31 (4) — Prosedürel SVG figürler (karakter/düşman "modelleme")
+
+**Tetik:** Kullanıcı harita+tıklama düzelince "gelişime devam" dedi, ardından açık talep: *"karakter ve düşman modelleme yapabilir misin, tüm modelleri güzelleştir, daha güzel bir oyun hissiyatı istiyorum."* İlk çatlağı (Faz 1) açma sırası gelmişti ama kullanıcı görsel sıçramayı öne aldı — kendi çağrısı, kilidi bilinçli açıyor (döngü+his+harita kanıtlandığı için artık kaçış değil).
+
+**Karar:** Tek dosya HTML kısıtında bespoke illüstrasyon (PNG/3D asset) mümkün değil — onun yerine **prosedürel SVG figürler**. Glif (`❋◈≋⟁❂`) yerine her arketip kendi silüeti + paleti + arketipe-özgü canlanması: Bastırma=iç içe dönen halkalar (sıkı düğüm), İnkar=kapalı zırh plakaları + sızan ışık, Kaygı=dışa açılan dönen spiral, Şüphe=sağa-sola tarayan tek göz, Yas=sallanan örtülü figür + damlayan gözyaşı. Oyuncu=psikanalist silüeti (koltuk + not defteri), hasarda geri tepme. `FORMS[id].svg()` üreticileri + `playerFig()`. Hâlâ asset yok, hâlâ atılabilir; sanat *yönü* kilitlenmedi (kullanıcı "bu yön doğru" diyene kadar prosedürel kalır).
+
+**Okunabilirlik:** Figürler soyut/sembolik — "düşman karakteri" gibi okunur, klinik/ölüm temasını bağırmaz (Kilitli Karar #1 korundu). Yas'ın yas teması zaten yüzeydeki isimle tutarlı.
+
+**Doğrulama:** 5 düşman + oyuncu figürü geçerli SVG üretiyor (headless); 100 taze tam koşu 0 kilitlenme.
+
+**Açılmayan:** bespoke raster/3D illüstrasyon, ses/müzik, ilk çatlak (Faz 1). Bir sonraki gerçek iş hâlâ: **ilk çatlak** — kullanıcı görsel pass'ı onaylayınca.
+
 ### 2026-05-31 (3) — Dallanan harita (gerçek ağaç): Faz 0 kapandı
 
 **Tetik:** His-pass + karar kartları oynandı, yargı: *"çok iyiydi"* (his ve "durup oku" kartları tuttu). Kalan tek Faz 0 parçası: #3 yol seçimi / agency. Kullanıcı netleştirdi: harita **aşağı doğru dallanıp budaklanan gerçek bir ağaç** olsun (Slay the Spire haritası gibi), "her aşamada 2 seçim" düz versiyon değil.
