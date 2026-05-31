@@ -77,6 +77,31 @@
   .skip{font-size:12px;color:var(--ink-dim);letter-spacing:1px;background:none;border:none;border-bottom:1px dashed var(--ink-dim);cursor:pointer;padding:2px 0;font-family:var(--mono)}
   .skip:hover{color:var(--ink)}
   .foot{font-size:10px;color:#5b626a;letter-spacing:.5px;max-width:680px;text-align:center;line-height:1.5}
+  /* --- his / juice --- */
+  @keyframes shakeX{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(3px)}30%,50%,70%{transform:translateX(-5px)}40%,60%{transform:translateX(5px)}}
+  @keyframes shakeBig{10%,90%{transform:translate(-3px,1px)}20%,80%{transform:translate(6px,-2px)}30%,50%,70%{transform:translate(-9px,2px)}40%,60%{transform:translate(9px,-1px)}}
+  .shake{animation:shakeX .32s cubic-bezier(.36,.07,.19,.97)}
+  .shake-big{animation:shakeBig .5s cubic-bezier(.36,.07,.19,.97)}
+  @keyframes hitFlash{0%{filter:brightness(1)}28%{filter:brightness(2.3) saturate(1.4)}100%{filter:brightness(1)}}
+  .enemy.hit{animation:hitFlash .3s ease}
+  @keyframes floatUp{0%{opacity:0;transform:translate(-50%,4px) scale(.7)}16%{opacity:1;transform:translate(-50%,-10px) scale(1.18)}100%{opacity:0;transform:translate(-50%,-52px) scale(1)}}
+  .dmgFloat{position:absolute;left:50%;top:44%;font-family:var(--serif);font-weight:600;font-size:30px;color:var(--warn);text-shadow:0 2px 9px rgba(0,0,0,.65);pointer-events:none;z-index:6;animation:floatUp .76s ease forwards}
+  .dmgFloat.blk{color:var(--block);font-size:22px} .dmgFloat.hurt{color:var(--hp)} .dmgFloat.crit{color:#fff;font-size:42px}
+  .vignette{position:fixed;inset:0;pointer-events:none;z-index:9;box-shadow:inset 0 0 0 0 rgba(177,92,92,0);transition:box-shadow .09s ease}
+  .vignette.flash{box-shadow:inset 0 0 130px 34px rgba(177,92,92,.5)}
+  .enemy-form{display:flex;justify-content:center;align-items:center;height:90px;margin:2px 0 -2px}
+  .form-shape{width:78px;height:78px;position:relative;border:1px solid rgba(255,255,255,.07);border-radius:42% 58% 56% 44%/52% 46% 54% 48%;animation:morph 6s ease-in-out infinite,breathe 3.4s ease-in-out infinite;filter:drop-shadow(0 7px 16px rgba(0,0,0,.5))}
+  .form-shape .fg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:30px;color:rgba(255,255,255,.82);text-shadow:0 1px 6px rgba(0,0,0,.5)}
+  .form-shape.hit{animation:morph 6s ease-in-out infinite,recoil .32s ease}
+  @keyframes morph{0%,100%{border-radius:42% 58% 56% 44%/52% 46% 54% 48%}50%{border-radius:55% 45% 47% 53%/46% 55% 45% 54%}}
+  @keyframes breathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-3px) scale(1.045)}}
+  @keyframes recoil{0%{transform:scale(1)}30%{transform:scale(.84) translateY(5px);filter:brightness(2.2)}100%{transform:scale(1)}}
+  .cart{height:30px;border-radius:6px;margin:1px 0;display:flex;align-items:center;justify-content:center;font-size:18px;color:rgba(255,255,255,.55);border:1px solid var(--line)}
+  .type-Saldırı .cart{background:linear-gradient(135deg,rgba(177,92,92,.28),rgba(177,92,92,.05))}
+  .type-Savunma .cart{background:linear-gradient(135deg,rgba(111,143,168,.28),rgba(111,143,168,.05))}
+  .type-Beceri .cart{background:linear-gradient(135deg,rgba(127,168,160,.28),rgba(127,168,160,.05))}
+  .card{min-height:150px}
+  .card.read .cname::after{content:'⏸';font-size:9px;color:var(--ink-dim);margin-left:5px;vertical-align:middle;opacity:.7}
 </style>
 </head>
 <body>
@@ -85,12 +110,13 @@
     <div class="turn" id="turnLbl">Tur 1</div>
   </div>
   <div class="track" id="track"></div>
-  <div class="arena">
-    <div class="enemy">
+  <div class="arena" id="arena">
+    <div class="enemy" id="enemyBox">
       <div class="enemy-head">
         <div><div class="enemy-name" id="eName">—</div><div class="enemy-sub" id="eSub"></div></div>
         <div class="intent" id="intent"><div class="lbl">niyet</div><div class="val">—</div></div>
       </div>
+      <div class="enemy-form" id="eForm"></div>
       <div class="bar"><i id="eBar" style="width:100%"></i><span class="barnum" id="eBarNum"></span></div>
       <div class="badges" id="eBadges"></div>
     </div>
@@ -106,6 +132,7 @@
   </div>
   <div class="hand" id="hand"></div>
   <button class="end" id="endBtn">Turu Bitir</button>
+  <div class="vignette" id="vig"></div>
   <div class="foot">5 dövüşlük bir koşu. Test: tekrarda yıpranıyor mu — yoksa deste büyüdükçe daha mı çekici oluyor?</div>
 
   <div class="rew" id="rew">
@@ -140,10 +167,16 @@
     berkitme:{name:'Berkitme',cost:1,type:'Savunma',text:'10 savunma.',block:10},
     aydinlanma:{name:'Aydınlanma',cost:1,type:'Beceri',text:'3 kart çek.',draw:3},
     sublimasyon:{name:'Süblimasyon',cost:1,type:'Saldırı',text:'8 hasar. 1 çek.',dmg:8,draw:1},
-    dayaniklilik:{name:'Dayanıklılık',cost:1,type:'Savunma',text:'6 savunma. Sonraki saldırı +3.',block:6,addTelkin:3}
+    dayaniklilik:{name:'Dayanıklılık',cost:1,type:'Savunma',text:'6 savunma. Sonraki saldırı +3.',block:6,addTelkin:3},
+    yansitma:{name:'Yansıtma',cost:1,type:'Saldırı',read:true,text:'Düşman saldıracaksa 16, değilse 7 hasar.',dmgFn:s=>(s.enemy&&s.enemy.intent&&s.enemy.intent.type==='attack')?16:7},
+    bosalma:{name:'Boşalma',cost:1,type:'Saldırı',read:true,text:'Elindeki diğer her kart başına 4 hasar.',dmgFn:s=>Math.max(0,s.hand.length-1)*4},
+    dipdalga:{name:'Dip Dalga',cost:1,type:'Saldırı',read:true,text:'Bu savaşta oynadığın her Savunma için 4 hasar.',dmgFn:s=>s.player.defPlayed*4},
+    bekletme:{name:'Bekletilmiş Hamle',cost:0,type:'Saldırı',read:true,text:'Kalan her Ego için 5 hasar. Ego’n tükenir.',dmgFn:s=>s.player.energy*5,after:s=>{s.player.energy=0;}},
+    tortu:{name:'Tortu',cost:1,type:'Savunma',read:true,text:'Atık destendeki kart başına 1 savunma (en çok 13).',blockFn:s=>Math.min(13,s.discard.length)}
   };
+  const FORMS={bastirma:{g:'❋',c:'#b0827f'},inkar:{g:'◈',c:'#7f93b0'},kaygi:{g:'≋',c:'#b0a87f'},suphe:{g:'⟁',c:'#a87fb0'},yas:{g:'❂',c:'#8a8f99'}};
   const STARTER=['yorumlama','yorumlama','yorumlama','sinir','sinir','sinir','imge','ofke','ruya','telkin','toparlanma','icekapanis','dikkat','serbest'];
-  const REWARD_POOL=['yuzlesme','saplanti','tahliye','berkitme','aydinlanma','sublimasyon','dayaniklilik'];
+  const REWARD_POOL=['yuzlesme','saplanti','tahliye','berkitme','aydinlanma','sublimasyon','dayaniklilik','yansitma','bosalma','dipdalga','bekletme','tortu'];
   const ENEMIES=[
     {id:'bastirma',name:'Bastırma Yumağı',sub:'ısınma · düz bir direnç',hp:44,kind:'pattern',
      pattern:[{type:'attack',value:10},{type:'block',value:8},{type:'attack',value:13},{type:'attack',value:9}]},
@@ -177,8 +210,8 @@
   function startFight(index){
     const cfg=ENEMIES[index];
     S.fightIndex=index; S.flow='combat'; S.over=false; S.turn=1; S.pat=0;
-    S.player.block=0; S.player.energy=S.player.maxEnergy; S.player.telkin=0; S.player.weak=0;
-    S.enemy={name:cfg.name,sub:cfg.sub,hp:cfg.hp,maxHp:cfg.hp,block:0,ruya:0,ruyaT:0,kind:cfg.kind,pattern:cfg.pattern,base:cfg.base,step:cfg.step,spiral:0};
+    S.player.block=0; S.player.energy=S.player.maxEnergy; S.player.telkin=0; S.player.weak=0; S.player.defPlayed=0;
+    S.enemy={id:cfg.id,name:cfg.name,sub:cfg.sub,hp:cfg.hp,maxHp:cfg.hp,block:0,ruya:0,ruyaT:0,kind:cfg.kind,pattern:cfg.pattern,base:cfg.base,step:cfg.step,spiral:0};
     S.deck=buildDeck(); S.hand=[]; S.discard=[];
     draw(5); setIntent();
     log('Direnç '+(index+1)+': '+cfg.name+'.');
@@ -196,8 +229,16 @@
     if(e.kind==='pattern') e.intent=e.pattern[S.pat%e.pattern.length];
     else if(e.kind==='escalate') e.intent={type:'attack',value:e.base+e.step*e.spiral,spiral:true};
   }
-  function dmgEnemy(a){let d=a;if(S.enemy.block>0){const ab=Math.min(S.enemy.block,d);S.enemy.block-=ab;d-=ab;}S.enemy.hp=Math.max(0,S.enemy.hp-d);}
-  function dmgPlayer(a){let d=a;if(S.player.block>0){const ab=Math.min(S.player.block,d);S.player.block-=ab;d-=ab;}S.player.hp=Math.max(0,S.player.hp-d);}
+  function shake(big){const a=el('arena');if(!a)return;a.classList.remove('shake','shake-big');void a.offsetWidth;a.classList.add(big?'shake-big':'shake');}
+  function floatNum(host,txt,cls){if(!host)return;const s=document.createElement('span');s.className='dmgFloat '+(cls||'');s.textContent=txt;s.style.left=(40+Math.random()*20)+'%';host.appendChild(s);setTimeout(function(){s.remove();},780);}
+  function flashEnemy(){const b=el('enemyBox');if(b){b.classList.remove('hit');void b.offsetWidth;b.classList.add('hit');}const f=el('eForm')&&el('eForm').firstChild;if(f){f.classList.remove('hit');void f.offsetWidth;f.classList.add('hit');}}
+  function flashVig(){const v=el('vig');if(!v)return;v.classList.add('flash');setTimeout(function(){v.classList.remove('flash');},100);}
+  function dmgEnemy(a){let d=a,blocked=0;if(S.enemy.block>0){const ab=Math.min(S.enemy.block,d);S.enemy.block-=ab;d-=ab;blocked=ab;}S.enemy.hp=Math.max(0,S.enemy.hp-d);
+    flashEnemy();shake(d>=15);const host=el('enemyBox');
+    if(d>0)floatNum(host,d,d>=18?'crit':'');else if(blocked>0)floatNum(host,'blok','blk');}
+  function dmgPlayer(a){let d=a,blocked=0;if(S.player.block>0){const ab=Math.min(S.player.block,d);S.player.block-=ab;d-=ab;blocked=ab;}S.player.hp=Math.max(0,S.player.hp-d);
+    const host=document.querySelector('.player');
+    if(d>0){flashVig();shake(d>=14);floatNum(host,'-'+d,'hurt');}else if(blocked>0)floatNum(host,'blok','blk');}
 
   function playCard(idx){
     if(S.over||S.flow!=='combat') return;
@@ -206,10 +247,10 @@
     S.player.energy-=c.cost;
     if(!c.revealed){ c.revealed=true; c.gizli=false; }
     let parts=[];
-    if(c.block){ S.player.block+=c.block; parts.push(c.block+' savunma'); }
+    if(c.block||c.blockFn){ const b=c.blockFn?c.blockFn(S):c.block; S.player.block+=b; parts.push(b+' savunma'); }
     if(c.gainEnergy){ S.player.energy+=c.gainEnergy; parts.push('+'+c.gainEnergy+' Ego'); }
-    if(c.dmg){
-      let d=c.dmg;
+    if(c.dmg||c.dmgFn){
+      let d=c.dmgFn?c.dmgFn(S):c.dmg;
       if(S.player.telkin>0 && c.type==='Saldırı'){ d+=S.player.telkin; parts.push('(+'+S.player.telkin+' telkin)'); S.player.telkin=0; }
       if(S.player.weak>0 && c.type==='Saldırı'){ d=Math.floor(d*0.67); parts.push('(zayıf)'); }
       const hits=c.hits||1; for(let h=0;h<hits;h++) dmgEnemy(d);
@@ -218,6 +259,8 @@
     if(c.self){ dmgPlayer(c.self); parts.push('kendine '+c.self); }
     if(c.ruya){ S.enemy.ruya=c.ruya.dmg; S.enemy.ruyaT=c.ruya.turns; parts.push('rüya işlendi'); }
     if(c.addTelkin){ S.player.telkin+=c.addTelkin; parts.push('telkin +'+c.addTelkin); }
+    if(c.after) c.after(S);
+    if(c.type==='Savunma') S.player.defPlayed++;
     S.hand.splice(idx,1); S.discard.push(c);
     if(c.draw) draw(c.draw);
     log(c.name+' — '+parts.join(', ')+'.');
@@ -265,8 +308,8 @@
     let pool=REWARD_POOL.slice(); shuffle(pool); const opts=pool.slice(0,3);
     el('rewHeal').textContent=(healed>0?('+'+healed+' bütünlük. '):'')+'Bir kart ekle:';
     const row=el('rewRow'); row.innerHTML='';
-    opts.forEach(key=>{ const c=CARDS[key]; const d=document.createElement('div'); d.className='card type-'+c.type;
-      d.innerHTML='<div class="cost">'+c.cost+'</div><div class="ctype">'+c.type+'</div><div class="cname">'+c.name+'</div><div class="ctext">'+c.text+'</div>';
+    opts.forEach(key=>{ const c=CARDS[key]; const d=document.createElement('div'); const g=c.type==='Saldırı'?'⚔':c.type==='Savunma'?'🛡':'✦'; d.className='card type-'+c.type+(c.read?' read':'');
+      d.innerHTML='<div class="cost">'+c.cost+'</div><div class="ctype">'+c.type+'</div><div class="cname">'+c.name+'</div><div class="cart">'+g+'</div><div class="ctext">'+c.text+'</div>';
       d.addEventListener('click',()=>takeReward(key)); row.appendChild(d); });
     el('rew').classList.add('show');
     render();
@@ -288,6 +331,8 @@
     el('turnLbl').textContent='Tur '+S.turn;
     renderTrack();
     el('eName').textContent=S.enemy.name; el('eSub').textContent=S.enemy.sub;
+    const fEl=el('eForm'), f=FORMS[S.enemy.id];
+    if(f && fEl.dataset.k!==S.enemy.id){ fEl.dataset.k=S.enemy.id; fEl.innerHTML='<div class="form-shape" style="background:radial-gradient(circle at 38% 34%,'+f.c+',#15171a 78%)"><span class="fg">'+f.g+'</span></div>'; }
     const pct=(S.enemy.hp/S.enemy.maxHp)*100;
     el('eBar').style.width=pct+'%'; el('eBarNum').textContent=S.enemy.hp+' / '+S.enemy.maxHp;
     const it=S.enemy.intent; const iEl=el('intent'); let cls='intent',lbl='niyet',val='—';
@@ -310,7 +355,7 @@
       const d=document.createElement('div');
       const unaff=S.player.energy<c.cost;
       if(!c.revealed){ d.className='card gizli'+(unaff?' unaff':''); d.innerHTML='<div class="cost">?</div><div class="ctype">gizli kart</div><div class="qmark">?</div><div class="ctext">Oynayınca açılır.</div>'; }
-      else { d.className='card type-'+c.type+(unaff?' unaff':''); d.innerHTML='<div class="cost">'+c.cost+'</div><div class="ctype">'+c.type+'</div><div class="cname">'+c.name+'</div><div class="ctext">'+c.text+'</div>'; }
+      else { const g=c.type==='Saldırı'?'⚔':c.type==='Savunma'?'🛡':'✦'; d.className='card type-'+c.type+(unaff?' unaff':'')+(c.read?' read':''); d.innerHTML='<div class="cost">'+c.cost+'</div><div class="ctype">'+c.type+'</div><div class="cname">'+c.name+'</div><div class="cart">'+g+'</div><div class="ctext">'+c.text+'</div>'; }
       d.addEventListener('click',()=>playCard(idx)); h.appendChild(d);
     });
   }

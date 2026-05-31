@@ -116,3 +116,23 @@ Yeni oturum, bu kişiyle nasıl konuşacağını bilmiyor — bu yüzden yazıyo
 ## Bakım kuralı
 
 Bu dosyayı her **mimari** karar değişikliğinde güncelle. Sayı/denge ayarı için güncelleme. Eski sürümü silme; sayfa sonuna **DEĞİŞİKLİK KAYDI** başlığı altında tarihiyle ekle. Proje hafızasını koruyan tek dosya budur.
+
+---
+
+## DEĞİŞİKLİK KAYDI
+
+### 2026-05-31 — Döngü doğrulandı; ilk his-pass + karar kartları
+
+**Tetik:** Kullanıcı sert sürümü oynadı. Yargı: *"güzel, su gibi"* (= dişli akış, A ekseni geçti) + iki somut eksik: (1) "vuruş hissiyatı / karakter modeli yok → ham kalıyor", (2) "kartlar güzel değildi; durup okuduğum kartlar olsa süper".
+
+**Karar kayması:** "Greybox kal, görsel/cila ekleme" kilidinin koşulu (*döngü yıpranmaya karşı dayanıklı görülene kadar*) artık karşılandı. Bu yüzden **ucuz + atılabilir** his-pass açıldı. Bespoke illüstrasyon HÂLÂ açılmadı (pahalı/yapışkan; kullanıcı "bu sanat yönü doğru" diyene kadar bekler).
+
+**Eklenenler (`psyche_mvp.html`):**
+- **His/juice:** ekran sarsıntısı (`shake`/`shake-big`), düşman flash + geri tepme, yüzen hasar sayıları (`floatNum`, crit eşiği ≥18), oyuncu hasarında kırmızı vinyet. Sıfır asset.
+- **Soyut düşman formu:** arketipe göre nabız atan/morph eden CSS şekli + glif (`FORMS` tablosu). "Karakter modeli" hissinin ucuz vekili; sanat yönünü kilitlemez. Vurulunca geri teper.
+- **Kart görseli:** tipe göre renkli sanat bandı + glif; "durup oku" kartlarına ⏸ işareti.
+- **Karar kartları (ödül havuzuna, çekirdek deste yalın kaldı):** Yansıtma (niyet-koşullu), Boşalma (el boyutu), Dip Dalga (oynanan Savunma sayısı), Bekletilmiş Hamle (kalan Ego'yu hasara çevirir), Tortu (atık destesi boyutu). Motor: `dmgFn(S)`/`blockFn(S)`/`after(S)` + `S.player.defPlayed` sayacı.
+
+**Açılmayan (bilinçli):** bespoke karakter/arka plan illüstrasyonu, ses/müzik, niyet-yalanı, Çözümleme ekranı, reveal/dördüncü duvar. Hâlâ Faz 1+ malzemesi.
+
+**Sıradaki:** Kullanıcı bu sürümü oynar. (a) His yetiyor mu yoksa bespoke sanata mı geçilsin, (b) karar kartları "durup oku" hissini veriyor mu / havuz dengesi.
