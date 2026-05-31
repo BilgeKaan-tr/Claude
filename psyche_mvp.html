@@ -104,11 +104,12 @@
   .card.read .cname::after{content:'⏸';font-size:9px;color:var(--ink-dim);margin-left:5px;vertical-align:middle;opacity:.7}
   /* --- harita --- */
   #mapRow{display:block;width:100%;max-width:560px}
-  #mapRow svg{display:block;margin:0 auto;max-width:100%;height:auto}
+  .mapbox{position:relative;width:100%;margin:0 auto;line-height:0}
+  .mapbox svg{display:block;width:100%;height:auto}
   @keyframes pulseRing{0%,100%{opacity:1}50%{opacity:.4}}
   svg .pulse{animation:pulseRing 1.4s ease-in-out infinite;cursor:pointer}
-  .maphit{border-radius:50%;cursor:pointer;transition:background .12s ease}
-  .maphit:hover{background:rgba(231,227,218,.14)}
+  .maphit{position:absolute;width:13%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;cursor:pointer;transition:background .12s ease}
+  .maphit:hover,.maphit:active{background:rgba(231,227,218,.16)}
   #map h2{margin-bottom:2px}
 </style>
 </head>
@@ -356,13 +357,12 @@
     svg+='<text x="'+bx+'" y="'+(by+6)+'" text-anchor="middle" font-size="18" fill="#cdbf86">⚜</text></svg>';
     el('mapTitle').textContent = S.pos? 'Yol — ilerle' : 'Yol — başlangıcını seç';
     el('mapSub').innerHTML='Bütünlük '+S.player.hp+'/'+S.player.maxHp+(S.mapNote?(' · '+S.mapNote):'')+' — ⚔ direnç · ✚ dinlen · ✦ kart · ⚜ patron';
-    const wrap=el('mapRow'); wrap.innerHTML=''; wrap.style.position='relative';
-    const box=document.createElement('div'); box.innerHTML=svg; wrap.appendChild(box);
-    const dispW=Math.min(width,560), scale=dispW/width;
+    const wrap=el('mapRow'); wrap.innerHTML='';
+    const box=document.createElement('div'); box.className='mapbox'; box.innerHTML=svg; wrap.appendChild(box);
     reach.forEach(n=>{ const hit=document.createElement('div'); hit.className='maphit';
-      const cx=(n.boss?bx:nx(n.c))*scale, cy=(n.boss?by:ny(n.r))*scale;
-      hit.style.position='absolute'; hit.style.left=(cx-23)+'px'; hit.style.top=(cy-23)+'px'; hit.style.width='46px'; hit.style.height='46px';
-      hit.addEventListener('click',()=>enterNode(n)); wrap.appendChild(hit); });
+      const cx=(n.boss?bx:nx(n.c)), cy=(n.boss?by:ny(n.r));
+      hit.style.left=(cx/width*100)+'%'; hit.style.top=(cy/height*100)+'%';
+      hit.addEventListener('click',()=>enterNode(n)); box.appendChild(hit); });
     el('map').classList.add('show');
     renderTrack();
   }
