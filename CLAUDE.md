@@ -97,8 +97,8 @@ Yeni oturum, bu kişiyle nasıl konuşacağını bilmiyor — bu yüzden yazıyo
 ## Doğrulama (build geçti diyebilmek için)
 
 - `psyche_mvp.html` çift tıklanınca tarayıcıda açılmalı, konsol hatası vermemeli.
-- 5 dövüş arka arkaya oynanabilmeli, kart ödülü 4 kez sunulmalı, Yas'tan sonra "Koşu tamamlandı" ekranı açılmalı.
-- "Yeniden" düğmesi desteyi temiz başlatmalı (eklenen ödül kartları sıfırlanmalı).
+- Dallanan haritada bir başlangıç düğümü seçilebilmeli; yol boyunca düğümler (dövüş/dinlenme/kart) çözülmeli; en sonda patron **Yas** gelmeli ve yenince "Koşu tamamlandı" ekranı açılmalı.
+- "Yeniden" düğmesi desteyi **ve haritayı** temiz başlatmalı (eklenen ödül kartları sıfırlanmalı, yeni harita üretilmeli).
 
 ---
 
@@ -121,7 +121,17 @@ Bu dosyayı her **mimari** karar değişikliğinde güncelle. Sayı/denge ayarı
 
 ## DEĞİŞİKLİK KAYDI
 
-### 2026-05-31 — Döngü doğrulandı; ilk his-pass + karar kartları
+### 2026-05-31 (3) — Dallanan harita (gerçek ağaç): Faz 0 kapandı
+
+**Tetik:** His-pass + karar kartları oynandı, yargı: *"çok iyiydi"* (his ve "durup oku" kartları tuttu). Kalan tek Faz 0 parçası: #3 yol seçimi / agency. Kullanıcı netleştirdi: harita **aşağı doğru dallanıp budaklanan gerçek bir ağaç** olsun (Slay the Spire haritası gibi), "her aşamada 2 seçim" düz versiyon değil.
+
+**Karar:** Lineer parkur kaldırıldı; yerine **çatallanıp birleşen grafik harita** geldi. 4 sütun (W) × 5 satır (R), 6 rastgele yürüyüşle üretilen kenarlar; her satırdaki düğüm bir sonraki satırda ±1 sütundaki düğüm(ler)e bağlanır → yollar dallanır ve birleşir. Birden çok başlangıç düğümü (üst satır); en altta sabit patron **Yas**, son satırın her düğümünden ona kenar var. Oyuncu yukarıdan aşağıya iner; her adımda yalnızca mevcut düğümün bağlı olduğu düğümlere gidebilir. Düğüm tipleri: **dövüş** (rastgele arketip), **dinlenme** (+14 bütünlük), **kart** (bedava 1/3 seçim, iyileşme yok). Harita SVG ile çizilir (kenar çizgileri + daire düğümler + glif), erişilebilir düğümler nabız atar ve üstlerine tıklanabilir hit-alanı bindirilir; gidilen yol işaretlenir. Faz 0 okunabilirlik korundu (Dinlenme/Buluş/Direnç/Patron — normal SLS haritası gibi okunur).
+
+**Mimari:** `S.fightIndex` (lineer) tamamen kaldırıldı. Model: `S.map={rows,W,R}`, `S.pos` (mevcut düğüm | null), `S.path` (gidilen düğümler), `S.pending`. Akış: `showMap → enterNode → (startFight | rest | showCardPick) → arriveNode → showMap → ... → enterNode(boss) → startFight(BOSS,true)`. `reachable()` saf fonksiyon erişilebilir düğümleri verir. `startFight(cfg,boss)` imzası; `ENEMY_BY_ID`/`BOSS` lookup. Üst şerit satır ilerlemesini gösterir. **Doğrulama:** headless harness 40 rastgele tam koşuyu (harita→dövüş→ödül→dinlenme→kart→patron→kazan/kaybet→yeniden) hatasız çözdü.
+
+**Açılmayan:** elit/olay/dükkan düğümleri, çoklu kat (act), bespoke sanat — sonraki. Bir sonraki gerçek iş artık brifingin "sonra ve sadece sonra" dediği: **ilk çatlak (Faz 1)**.
+
+### 2026-05-31 (2) — Döngü doğrulandı; ilk his-pass + karar kartları
 
 **Tetik:** Kullanıcı sert sürümü oynadı. Yargı: *"güzel, su gibi"* (= dişli akış, A ekseni geçti) + iki somut eksik: (1) "vuruş hissiyatı / karakter modeli yok → ham kalıyor", (2) "kartlar güzel değildi; durup okuduğum kartlar olsa süper".
 
@@ -134,5 +144,3 @@ Bu dosyayı her **mimari** karar değişikliğinde güncelle. Sayı/denge ayarı
 - **Karar kartları (ödül havuzuna, çekirdek deste yalın kaldı):** Yansıtma (niyet-koşullu), Boşalma (el boyutu), Dip Dalga (oynanan Savunma sayısı), Bekletilmiş Hamle (kalan Ego'yu hasara çevirir), Tortu (atık destesi boyutu). Motor: `dmgFn(S)`/`blockFn(S)`/`after(S)` + `S.player.defPlayed` sayacı.
 
 **Açılmayan (bilinçli):** bespoke karakter/arka plan illüstrasyonu, ses/müzik, niyet-yalanı, Çözümleme ekranı, reveal/dördüncü duvar. Hâlâ Faz 1+ malzemesi.
-
-**Sıradaki:** Kullanıcı bu sürümü oynar. (a) His yetiyor mu yoksa bespoke sanata mı geçilsin, (b) karar kartları "durup oku" hissini veriyor mu / havuz dengesi.

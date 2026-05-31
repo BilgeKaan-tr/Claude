@@ -102,6 +102,14 @@
   .type-Beceri .cart{background:linear-gradient(135deg,rgba(127,168,160,.28),rgba(127,168,160,.05))}
   .card{min-height:150px}
   .card.read .cname::after{content:'⏸';font-size:9px;color:var(--ink-dim);margin-left:5px;vertical-align:middle;opacity:.7}
+  /* --- harita --- */
+  #mapRow{display:block;width:100%;max-width:560px}
+  #mapRow svg{display:block;margin:0 auto;max-width:100%;height:auto}
+  @keyframes pulseRing{0%,100%{opacity:1}50%{opacity:.4}}
+  svg .pulse{animation:pulseRing 1.4s ease-in-out infinite;cursor:pointer}
+  .maphit{border-radius:50%;cursor:pointer;transition:background .12s ease}
+  .maphit:hover{background:rgba(231,227,218,.14)}
+  #map h2{margin-bottom:2px}
 </style>
 </head>
 <body>
@@ -133,8 +141,13 @@
   <div class="hand" id="hand"></div>
   <button class="end" id="endBtn">Turu Bitir</button>
   <div class="vignette" id="vig"></div>
-  <div class="foot">5 dövüşlük bir koşu. Test: tekrarda yıpranıyor mu — yoksa deste büyüdükçe daha mı çekici oluyor?</div>
+  <div class="foot">Dallanan bir yol: her düğümde nereye gideceğini sen seçersin. Test: yol seçimi gerçek bir karar gibi mi hissettiriyor?</div>
 
+  <div class="rew" id="map">
+    <h2 id="mapTitle">Yol ayrımı</h2>
+    <div class="heal" id="mapSub"></div>
+    <div class="rew-row" id="mapRow"></div>
+  </div>
   <div class="rew" id="rew">
     <h2>Direnç çözüldü</h2>
     <div class="heal" id="rewHeal"></div>
@@ -188,6 +201,7 @@
     {id:'yas',name:'Yas',sub:'ağır final · biriktirip vurur',hp:72,kind:'pattern',
      pattern:[{type:'attack',value:11},{type:'attack',value:9},{type:'charge'},{type:'attack',value:24,charged:true},{type:'attack',value:13}]}
   ];
+  const ENEMY_BY_ID={}; ENEMIES.forEach(e=>{ENEMY_BY_ID[e.id]=e;}); const BOSS=ENEMY_BY_ID['yas'];
 
   let S;
   function el(id){return document.getElementById(id);}
@@ -195,10 +209,30 @@
   function log(t){ el('log').textContent=t; }
 
   function newRun(){
-    S={fightIndex:0,player:{hp:80,maxHp:80,block:0,energy:3,maxEnergy:3,telkin:0,weak:0},
-       masterDeck:STARTER.slice(),deck:[],hand:[],discard:[],enemy:null,turn:1,pat:0,over:false,flow:'combat'};
-    el('overlay').classList.remove('show'); el('rew').classList.remove('show');
-    startFight(0);
+    S={player:{hp:80,maxHp:80,block:0,energy:3,maxEnergy:3,telkin:0,weak:0,defPlayed:0},
+       masterDeck:STARTER.slice(),deck:[],hand:[],discard:[],enemy:null,turn:1,pat:0,over:false,
+       flow:'map',map:buildMap(),pos:null,path:[],pending:null,bossFight:false,bossDone:false,mapNote:''};
+    el('overlay').classList.remove('show'); el('rew').classList.remove('show'); el('map').classList.remove('show');
+    showMap();
+  }
+  function buildMap(){
+    const W=4,R=5,base=['bastirma','inkar','kaygi','suphe'];
+    const rows=[]; for(let r=0;r<R;r++) rows.push(new Array(W).fill(null));
+    const rnd=n=>Math.floor(Math.random()*n);
+    for(let p=0;p<6;p++){ let col=rnd(W);
+      for(let r=0;r<R;r++){ if(!rows[r][col]) rows[r][col]={type:null,enemy:null,edges:[]};
+        if(r<R-1){ let nc=col+(rnd(3)-1); if(nc<0)nc=0; if(nc>W-1)nc=W-1; if(rows[r][col].edges.indexOf(nc)<0) rows[r][col].edges.push(nc); col=nc; } } }
+    for(let r=0;r<R;r++)for(let c=0;c<W;c++){ const n=rows[r][c]; if(!n)continue;
+      let t; if(r===0)t='fight'; else if(r===R-1)t=(c%2?'card':'rest');
+      else{ const x=Math.random(); t=x<0.6?'fight':(x<0.8?'card':'rest'); }
+      n.type=t; if(t==='fight')n.enemy=base[rnd(base.length)]; }
+    return {rows:rows,W:W,R:R};
+  }
+  function reachable(){
+    const m=S.map;
+    if(!S.pos){ const a=[]; for(let c=0;c<m.W;c++) if(m.rows[0][c]) a.push({r:0,c:c}); return a; }
+    if(S.pos.r<m.R-1) return m.rows[S.pos.r][S.pos.c].edges.map(c=>({r:S.pos.r+1,c:c}));
+    return [{boss:true}];
   }
   function buildDeck(){
     let deck=S.masterDeck.map((k)=>Object.assign({key:k,uid:k+'_'+Math.random(),gizli:false,revealed:true},CARDS[k]));
@@ -207,15 +241,14 @@
     deck[gi].gizli=true; deck[gi].revealed=false;
     return deck;
   }
-  function startFight(index){
-    const cfg=ENEMIES[index];
-    S.fightIndex=index; S.flow='combat'; S.over=false; S.turn=1; S.pat=0;
+  function startFight(cfg,boss){
+    S.flow='combat'; S.over=false; S.turn=1; S.pat=0; S.bossFight=!!boss;
     S.player.block=0; S.player.energy=S.player.maxEnergy; S.player.telkin=0; S.player.weak=0; S.player.defPlayed=0;
     S.enemy={id:cfg.id,name:cfg.name,sub:cfg.sub,hp:cfg.hp,maxHp:cfg.hp,block:0,ruya:0,ruyaT:0,kind:cfg.kind,pattern:cfg.pattern,base:cfg.base,step:cfg.step,spiral:0};
     S.deck=buildDeck(); S.hand=[]; S.discard=[];
     draw(5); setIntent();
-    log('Direnç '+(index+1)+': '+cfg.name+'.');
-    el('rew').classList.remove('show');
+    log((boss?'Patron — ':'Direnç: ')+cfg.name+'.');
+    el('rew').classList.remove('show'); el('map').classList.remove('show');
     render();
   }
   function draw(n){
@@ -293,18 +326,60 @@
     if(S.over) return;
     if(S.enemy.hp<=0){
       S.over=true;
-      if(S.fightIndex < ENEMIES.length-1) offerReward();
-      else { S.flow='runwon'; showOverlay('win','Koşu tamamlandı', S.player.hp+' bütünlükle bitirdin. Beş direnç, hiç sürpriz, hiç ahlaki ekran. Soru: koşu boyunca "bir el daha" mı dedin?'); }
+      if(S.bossFight){ S.bossDone=true; S.flow='runwon'; showOverlay('win','Koşu tamamlandı', S.player.hp+' bütünlükle bitirdin. Yol senindi: hangi dövüşleri seçtin, neyi atladın? Koşu boyunca "bir el daha" dedirtti mi?'); }
+      else offerReward();
     } else if(S.player.hp<=0){
       S.over=true; S.flow='runlost';
-      showOverlay('lose','Tükendi','Direnç '+(S.fightIndex+1)+'\'de düştün. Tekrar dene — not al: hangi dövüşte sıkıldın, hangisinde gerçekten gerildin?');
+      showOverlay('lose','Tükendi','Yolun ortasında düştün. Tekrar dene — farklı bir yol seç: daha çok dinlen mi, daha çok dövüş mü?');
     }
   }
 
-  function offerReward(){
+  const NGL={fight:'⚔',rest:'✚',card:'✦'}, NCO={fight:'#b15c5c',rest:'#6f8fa8',card:'#7fa8a0'};
+  function showMap(){
+    S.flow='map'; S.enemy=null;
+    el('overlay').classList.remove('show'); el('rew').classList.remove('show');
+    const m=S.map,W=m.W,R=m.R, cw=120,chh=80,padX=46,padY=42;
+    const width=padX*2+(W-1)*cw, height=padY*2+R*chh;
+    const nx=c=>padX+c*cw, ny=r=>padY+r*chh, bx=padX+(W-1)/2*cw, by=ny(R);
+    const reach=reachable(), rkey={}; reach.forEach(n=>rkey[n.boss?'boss':(n.r+'_'+n.c)]=true);
+    const pkey={}; (S.path||[]).forEach(n=>pkey[n.r+'_'+n.c]=true);
+    let svg='<svg viewBox="0 0 '+width+' '+height+'" width="'+Math.min(width,560)+'">';
+    for(let r=0;r<R;r++)for(let c=0;c<W;c++){const n=m.rows[r][c];if(!n)continue;
+      if(r<R-1) n.edges.forEach(nc=>{ svg+='<line x1="'+nx(c)+'" y1="'+ny(r)+'" x2="'+nx(nc)+'" y2="'+ny(r+1)+'" stroke="#33383f" stroke-width="2"/>'; });
+      else svg+='<line x1="'+nx(c)+'" y1="'+ny(r)+'" x2="'+bx+'" y2="'+by+'" stroke="#33383f" stroke-width="2"/>'; }
+    for(let r=0;r<R;r++)for(let c=0;c<W;c++){const n=m.rows[r][c];if(!n)continue;
+      const k=r+'_'+c, on=rkey[k], done=pkey[k], col=NCO[n.type];
+      svg+='<circle cx="'+nx(c)+'" cy="'+ny(r)+'" r="17" fill="'+(done?col:'#1d2025')+'" stroke="'+(on?'#e7e3da':(done?col:'#33383f'))+'" stroke-width="'+(on?3:1.5)+'"'+(on?' class="pulse"':'')+'/>';
+      svg+='<text x="'+nx(c)+'" y="'+(ny(r)+5)+'" text-anchor="middle" font-size="15" fill="'+(done?'#15171a':col)+'">'+NGL[n.type]+'</text>'; }
+    const bon=rkey['boss'];
+    svg+='<circle cx="'+bx+'" cy="'+by+'" r="22" fill="'+(S.bossDone?'#8a8f99':'#1d2025')+'" stroke="'+(bon?'#e7e3da':'#5b626a')+'" stroke-width="'+(bon?3:2)+'"'+(bon?' class="pulse"':'')+'/>';
+    svg+='<text x="'+bx+'" y="'+(by+6)+'" text-anchor="middle" font-size="18" fill="#cdbf86">⚜</text></svg>';
+    el('mapTitle').textContent = S.pos? 'Yol — ilerle' : 'Yol — başlangıcını seç';
+    el('mapSub').innerHTML='Bütünlük '+S.player.hp+'/'+S.player.maxHp+(S.mapNote?(' · '+S.mapNote):'')+' — ⚔ direnç · ✚ dinlen · ✦ kart · ⚜ patron';
+    const wrap=el('mapRow'); wrap.innerHTML=''; wrap.style.position='relative';
+    const box=document.createElement('div'); box.innerHTML=svg; wrap.appendChild(box);
+    const dispW=Math.min(width,560), scale=dispW/width;
+    reach.forEach(n=>{ const hit=document.createElement('div'); hit.className='maphit';
+      const cx=(n.boss?bx:nx(n.c))*scale, cy=(n.boss?by:ny(n.r))*scale;
+      hit.style.position='absolute'; hit.style.left=(cx-23)+'px'; hit.style.top=(cy-23)+'px'; hit.style.width='46px'; hit.style.height='46px';
+      hit.addEventListener('click',()=>enterNode(n)); wrap.appendChild(hit); });
+    el('map').classList.add('show');
+    renderTrack();
+  }
+  function enterNode(n){
+    el('map').classList.remove('show'); S.mapNote='';
+    if(n.boss){ startFight(BOSS,true); return; }
+    S.pending=n; const node=S.map.rows[n.r][n.c];
+    if(node.type==='fight'){ startFight(ENEMY_BY_ID[node.enemy],false); }
+    else if(node.type==='rest'){ const b=S.player.hp; S.player.hp=Math.min(S.player.maxHp,S.player.hp+14); S.mapNote='+'+(S.player.hp-b)+' bütünlük'; arriveNode(); }
+    else showCardPick(0);
+  }
+  function arriveNode(){ if(S.pending){ S.pos=S.pending; (S.path=S.path||[]).push(S.pending); S.pending=null; } showMap(); }
+
+  function offerReward(){ showCardPick(5); }
+  function showCardPick(healAmt){
     S.flow='reward';
-    const before=S.player.hp; S.player.hp=Math.min(S.player.maxHp,S.player.hp+5);
-    const healed=S.player.hp-before;
+    let healed=0; if(healAmt){ const b=S.player.hp; S.player.hp=Math.min(S.player.maxHp,S.player.hp+healAmt); healed=S.player.hp-b; }
     let pool=REWARD_POOL.slice(); shuffle(pool); const opts=pool.slice(0,3);
     el('rewHeal').textContent=(healed>0?('+'+healed+' bütünlük. '):'')+'Bir kart ekle:';
     const row=el('rewRow'); row.innerHTML='';
@@ -312,24 +387,24 @@
       d.innerHTML='<div class="cost">'+c.cost+'</div><div class="ctype">'+c.type+'</div><div class="cname">'+c.name+'</div><div class="cart">'+g+'</div><div class="ctext">'+c.text+'</div>';
       d.addEventListener('click',()=>takeReward(key)); row.appendChild(d); });
     el('rew').classList.add('show');
-    render();
+    if(S.enemy) render();
   }
-  function takeReward(key){ if(key) S.masterDeck.push(key); el('rew').classList.remove('show'); startFight(S.fightIndex+1); }
+  function takeReward(key){ if(key) S.masterDeck.push(key); el('rew').classList.remove('show'); arriveNode(); }
 
   function renderTrack(){
     const t=el('track'); t.innerHTML='';
-    ENEMIES.forEach((e,i)=>{
-      const n=document.createElement('span');
-      let cl='node'; if(i<S.fightIndex)cl+=' done'; else if(i===S.fightIndex)cl+=' cur';
-      n.className=cl; n.textContent=(i<S.fightIndex?'✓ ':'')+(i+1)+' · '+e.name;
-      t.appendChild(n);
-      if(i<ENEMIES.length-1){ const d=document.createElement('span'); d.className='node'; d.style.border='none'; d.style.background='none'; d.style.padding='0'; d.innerHTML='<span class="dash">—</span>'; t.appendChild(d); }
-    });
+    const add=(cl,txt)=>{ const n=document.createElement('span'); n.className=cl; n.textContent=txt; t.appendChild(n); };
+    const dash=()=>{ const d=document.createElement('span'); d.className='node'; d.style.border='none'; d.style.background='none'; d.style.padding='0'; d.innerHTML='<span class="dash">—</span>'; t.appendChild(d); };
+    const cur=S.pos?S.pos.r:-1;
+    for(let i=0;i<S.map.R;i++){ let cl='node'; if(i<=cur)cl+=' done'; else if(i===cur+1)cl+=' cur'; add(cl,(i<=cur?'✓ ':'')+'Sıra '+(i+1)); dash(); }
+    let bcl='node'; if(S.bossDone)bcl+=' done'; else if(cur>=S.map.R-1)bcl+=' cur';
+    add(bcl,(S.bossDone?'✓ ':'')+'⚜ Yas');
   }
 
   function render(){
     el('turnLbl').textContent='Tur '+S.turn;
     renderTrack();
+    if(!S.enemy) return;
     el('eName').textContent=S.enemy.name; el('eSub').textContent=S.enemy.sub;
     const fEl=el('eForm'), f=FORMS[S.enemy.id];
     if(f && fEl.dataset.k!==S.enemy.id){ fEl.dataset.k=S.enemy.id; fEl.innerHTML='<div class="form-shape" style="background:radial-gradient(circle at 38% 34%,'+f.c+',#15171a 78%)"><span class="fg">'+f.g+'</span></div>'; }
