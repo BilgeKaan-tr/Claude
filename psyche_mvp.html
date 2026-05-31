@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PSYCHE — Faz 0 Prototip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400&family=Spline+Sans+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#15171a;--panel:#1d2025;--panel-2:#23272d;--line:#33383f;--ink:#e7e3da;--ink-dim:#9aa0a8;--accent:#7fa8a0;--warn:#c98a6b;--hp:#b15c5c;--block:#6f8fa8;--energy:#cdbf86;--weak:#b07fb0;--serif:'Spectral',Georgia,serif;--mono:'Spline Sans Mono',ui-monospace,monospace;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:radial-gradient(120% 80% at 50% -10%,#1b1e23 0%,var(--bg) 60%);color:var(--ink);font-family:var(--mono);display:flex;flex-direction:column;align-items:center;min-height:100%;padding:14px 12px 12px;gap:12px;-webkit-font-smoothing:antialiased}
+  .top{width:100%;max-width:680px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .title{font-family:var(--serif);font-weight:600;letter-spacing:3px;font-size:15px;color:var(--ink-dim)}
+  .title b{color:var(--ink)}
+  .turn{font-size:11px;color:var(--ink-dim);letter-spacing:1px}
+  .track{width:100%;max-width:680px;display:flex;align-items:center;gap:6px;justify-content:center;flex-wrap:wrap}
+  .node{font-size:9.5px;letter-spacing:.5px;padding:3px 9px;border-radius:20px;border:1px solid var(--line);color:var(--ink-dim);background:var(--panel)}
+  .node.done{color:var(--accent);border-color:#3a4d47;opacity:.65}
+  .node.cur{color:var(--ink);border-color:var(--accent);background:#26302e}
+  .node .dash{color:#444}
+  .arena{width:100%;max-width:680px;display:flex;flex-direction:column;gap:12px}
+  .enemy{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;position:relative}
+  .enemy-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+  .enemy-name{font-family:var(--serif);font-size:20px;font-weight:600}
+  .enemy-sub{font-size:10.5px;color:var(--ink-dim);margin-top:2px;letter-spacing:.5px}
+  .intent{text-align:right;min-width:74px}
+  .intent .lbl{font-size:9px;color:var(--ink-dim);letter-spacing:1.5px;text-transform:uppercase}
+  .intent .val{font-family:var(--serif);font-size:22px;font-weight:600;line-height:1.1}
+  .intent.atk .val{color:var(--warn)} .intent.def .val{color:var(--block)} .intent.charge .val{color:var(--energy)} .intent.debuff .val{color:var(--weak)}
+  .bar{height:14px;background:#121316;border:1px solid var(--line);border-radius:7px;overflow:hidden;position:relative}
+  .bar > i{display:block;height:100%;background:linear-gradient(var(--hp),#8f4747);transition:width .35s ease}
+  .bar .barnum{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;mix-blend-mode:difference;letter-spacing:.5px}
+  .badges{display:flex;gap:8px;flex-wrap:wrap}
+  .badge{font-size:10.5px;padding:3px 8px;border-radius:5px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink-dim);letter-spacing:.4px}
+  .badge.b-block{color:var(--block);border-color:#3a4d5c} .badge.b-ruya{color:var(--accent);border-color:#3a4d47} .badge.b-weak{color:var(--weak);border-color:#4d3a4d}
+  .log{font-size:11.5px;color:var(--ink-dim);min-height:16px;text-align:center;letter-spacing:.3px;font-style:italic;font-family:var(--serif)}
+  .player{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center}
+  .stat{display:flex;align-items:center;gap:7px}
+  .stat .k{font-size:9px;color:var(--ink-dim);letter-spacing:1px;text-transform:uppercase}
+  .stat .v{font-family:var(--serif);font-size:20px;font-weight:600}
+  .v.hp{color:var(--hp)} .v.block{color:var(--block)}
+  .pips{display:flex;gap:4px}
+  .pip{width:13px;height:13px;border-radius:50%;border:1.5px solid var(--energy);background:transparent}
+  .pip.on{background:var(--energy)}
+  .telkin{font-size:10.5px;color:var(--accent);border:1px solid #3a4d47;border-radius:5px;padding:3px 8px;letter-spacing:.4px}
+  .pweak{font-size:10.5px;color:var(--weak);border:1px solid #4d3a4d;border-radius:5px;padding:3px 8px;letter-spacing:.4px}
+  .piles{font-size:10px;color:var(--ink-dim);letter-spacing:.5px}
+  .hand{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:100%;max-width:700px}
+  .card{width:104px;min-height:138px;background:linear-gradient(var(--panel-2),#1a1d22);border:1px solid var(--line);border-radius:9px;padding:9px;cursor:pointer;display:flex;flex-direction:column;gap:6px;transition:transform .12s ease,border-color .12s ease,box-shadow .12s ease;position:relative;user-select:none}
+  .card:hover{transform:translateY(-6px);border-color:var(--accent);box-shadow:0 8px 22px rgba(0,0,0,.45)}
+  .card.unaff{opacity:.42;cursor:not-allowed}
+  .card.unaff:hover{transform:none;border-color:var(--line);box-shadow:none}
+  .card .cost{position:absolute;top:-7px;left:-7px;width:24px;height:24px;border-radius:50%;background:var(--bg);border:1.5px solid var(--energy);color:var(--energy);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center}
+  .card .cname{font-family:var(--serif);font-size:14px;font-weight:600;line-height:1.15;margin-top:4px}
+  .card .ctype{font-size:8.5px;color:var(--ink-dim);letter-spacing:1.5px;text-transform:uppercase}
+  .card .ctext{font-size:10.5px;color:var(--ink-dim);line-height:1.35;margin-top:auto}
+  .type-Saldırı .cname{color:#d99} .type-Savunma .cname{color:#9bbcd6} .type-Beceri .cname{color:#a9d2c8}
+  .card.gizli{background:linear-gradient(#202329,#15171a);border-style:dashed;border-color:#444c54}
+  .card.gizli .cname,.card.gizli .ctext{color:#6b727a}
+  .card.gizli .qmark{font-family:var(--serif);font-size:42px;color:#4a525a;text-align:center;margin:auto}
+  .card.gizli .cost{border-color:#5a626a;color:#6b727a}
+  .end{background:var(--panel-2);border:1px solid var(--accent);color:var(--ink);font-family:var(--mono);font-size:13px;letter-spacing:1px;padding:11px 28px;border-radius:8px;cursor:pointer;transition:background .15s ease;text-transform:uppercase}
+  .end:hover{background:#2c3a37}
+  .overlay{position:fixed;inset:0;background:rgba(10,11,13,.92);display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;z-index:10;padding:24px;text-align:center}
+  .overlay.show{display:flex}
+  .overlay h2{font-family:var(--serif);font-size:32px;font-weight:600;letter-spacing:1px}
+  .overlay p{font-family:var(--serif);font-style:italic;color:var(--ink-dim);max-width:360px;line-height:1.5}
+  .overlay .win{color:var(--accent)} .overlay .lose{color:var(--hp)}
+  .rew{position:fixed;inset:0;background:rgba(10,11,13,.94);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:11;padding:24px;text-align:center}
+  .rew.show{display:flex}
+  .rew h2{font-family:var(--serif);font-size:24px;font-weight:600;letter-spacing:1px;color:var(--accent)}
+  .rew .heal{font-family:var(--serif);font-style:italic;color:var(--ink-dim);font-size:13px}
+  .rew-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  .skip{font-size:12px;color:var(--ink-dim);letter-spacing:1px;background:none;border:none;border-bottom:1px dashed var(--ink-dim);cursor:pointer;padding:2px 0;font-family:var(--mono)}
+  .skip:hover{color:var(--ink)}
+  .foot{font-size:10px;color:#5b626a;letter-spacing:.5px;max-width:680px;text-align:center;line-height:1.5}
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="title"><b>PSYCHE</b> · faz 0</div>
+    <div class="turn" id="turnLbl">Tur 1</div>
+  </div>
+  <div class="track" id="track"></div>
+  <div class="arena">
+    <div class="enemy">
+      <div class="enemy-head">
+        <div><div class="enemy-name" id="eName">—</div><div class="enemy-sub" id="eSub"></div></div>
+        <div class="intent" id="intent"><div class="lbl">niyet</div><div class="val">—</div></div>
+      </div>
+      <div class="bar"><i id="eBar" style="width:100%"></i><span class="barnum" id="eBarNum"></span></div>
+      <div class="badges" id="eBadges"></div>
+    </div>
+    <div class="log" id="log"></div>
+    <div class="player">
+      <div class="stat"><span class="k">Bütünlük</span><span class="v hp" id="pHp">80</span></div>
+      <div class="stat"><span class="k">Savunma</span><span class="v block" id="pBlock">0</span></div>
+      <div class="stat"><span class="k">Ego</span><span class="pips" id="pPips"></span></div>
+      <span class="telkin" id="telkin" style="display:none"></span>
+      <span class="pweak" id="pweak" style="display:none"></span>
+      <span class="piles" id="piles">deste 0 · atık 0</span>
+    </div>
+  </div>
+  <div class="hand" id="hand"></div>
+  <button class="end" id="endBtn">Turu Bitir</button>
+  <div class="foot">5 dövüşlük bir koşu. Test: tekrarda yıpranıyor mu — yoksa deste büyüdükçe daha mı çekici oluyor?</div>
+
+  <div class="rew" id="rew">
+    <h2>Direnç çözüldü</h2>
+    <div class="heal" id="rewHeal"></div>
+    <div class="rew-row" id="rewRow"></div>
+    <button class="skip" id="rewSkip">Hiçbirini alma →</button>
+  </div>
+  <div class="overlay" id="overlay">
+    <h2 id="ovTitle"></h2>
+    <p id="ovText"></p>
+    <button class="end" id="restart">Yeniden</button>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+  const CARDS={
+    yorumlama:{name:'Yorumlama',cost:1,type:'Saldırı',text:'6 hasar.',dmg:6},
+    imge:{name:'Çözümsüz İmge',cost:2,type:'Saldırı',text:'11 hasar.',dmg:11},
+    ofke:{name:'Bastırılmış Öfke',cost:1,type:'Saldırı',text:'9 hasar. Kendine 2.',dmg:9,self:2},
+    ruya:{name:'Rüya İmgesi',cost:2,type:'Saldırı',text:'7 hasar. 2 tur +3.',dmg:7,ruya:{dmg:3,turns:2}},
+    telkin:{name:'Telkin',cost:1,type:'Beceri',text:'Sonraki saldırı +4.',addTelkin:4},
+    sinir:{name:'Sınır Çizmek',cost:1,type:'Savunma',text:'5 savunma.',block:5},
+    toparlanma:{name:'Zihinsel Toparlanma',cost:2,type:'Savunma',text:'12 savunma.',block:12},
+    icekapanis:{name:'İçe Kapanış',cost:1,type:'Savunma',text:'7 savunma. 1 çek.',block:7,draw:1},
+    dikkat:{name:'Dikkat Dağınıklığı',cost:0,type:'Beceri',text:'3 savunma. 1 çek.',block:3,draw:1},
+    serbest:{name:'Serbest Çağrışım',cost:0,type:'Beceri',text:'2 kart çek.',draw:2},
+    yuzlesme:{name:'Yüzleşme',cost:1,type:'Saldırı',text:'13 hasar.',dmg:13},
+    saplanti:{name:'Saplantı',cost:2,type:'Saldırı',text:'6 hasar, 2 kez.',dmg:6,hits:2},
+    tahliye:{name:'Tahliye',cost:0,type:'Beceri',text:'Kendine 3. +2 Ego.',self:3,gainEnergy:2},
+    berkitme:{name:'Berkitme',cost:1,type:'Savunma',text:'10 savunma.',block:10},
+    aydinlanma:{name:'Aydınlanma',cost:1,type:'Beceri',text:'3 kart çek.',draw:3},
+    sublimasyon:{name:'Süblimasyon',cost:1,type:'Saldırı',text:'8 hasar. 1 çek.',dmg:8,draw:1},
+    dayaniklilik:{name:'Dayanıklılık',cost:1,type:'Savunma',text:'6 savunma. Sonraki saldırı +3.',block:6,addTelkin:3}
+  };
+  const STARTER=['yorumlama','yorumlama','yorumlama','sinir','sinir','sinir','imge','ofke','ruya','telkin','toparlanma','icekapanis','dikkat','serbest'];
+  const REWARD_POOL=['yuzlesme','saplanti','tahliye','berkitme','aydinlanma','sublimasyon','dayaniklilik'];
+  const ENEMIES=[
+    {id:'bastirma',name:'Bastırma Yumağı',sub:'ısınma · düz bir direnç',hp:44,kind:'pattern',
+     pattern:[{type:'attack',value:10},{type:'block',value:8},{type:'attack',value:13},{type:'attack',value:9}]},
+    {id:'inkar',name:'İnkar Kabuğu',sub:'zırhlanır · kemirme işlemez, patlat',hp:34,kind:'pattern',
+     pattern:[{type:'block',value:15},{type:'attack',value:9},{type:'block',value:13},{type:'attack',value:16}]},
+    {id:'kaygi',name:'Kaygı Sarmalı',sub:'her tur derinleşir · yarış',hp:46,kind:'escalate',base:6,step:4},
+    {id:'suphe',name:'Şüphe',sub:'gücünü zayıflatır · adapte ol',hp:48,kind:'pattern',
+     pattern:[{type:'debuff',value:2,dmg:6},{type:'attack',value:13},{type:'debuff',value:3,dmg:6},{type:'attack',value:11}]},
+    {id:'yas',name:'Yas',sub:'ağır final · biriktirip vurur',hp:72,kind:'pattern',
+     pattern:[{type:'attack',value:11},{type:'attack',value:9},{type:'charge'},{type:'attack',value:24,charged:true},{type:'attack',value:13}]}
+  ];
+
+  let S;
+  function el(id){return document.getElementById(id);}
+  function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}}
+  function log(t){ el('log').textContent=t; }
+
+  function newRun(){
+    S={fightIndex:0,player:{hp:80,maxHp:80,block:0,energy:3,maxEnergy:3,telkin:0,weak:0},
+       masterDeck:STARTER.slice(),deck:[],hand:[],discard:[],enemy:null,turn:1,pat:0,over:false,flow:'combat'};
+    el('overlay').classList.remove('show'); el('rew').classList.remove('show');
+    startFight(0);
+  }
+  function buildDeck(){
+    let deck=S.masterDeck.map((k)=>Object.assign({key:k,uid:k+'_'+Math.random(),gizli:false,revealed:true},CARDS[k]));
+    shuffle(deck);
+    const gi=Math.floor(Math.random()*deck.length);
+    deck[gi].gizli=true; deck[gi].revealed=false;
+    return deck;
+  }
+  function startFight(index){
+    const cfg=ENEMIES[index];
+    S.fightIndex=index; S.flow='combat'; S.over=false; S.turn=1; S.pat=0;
+    S.player.block=0; S.player.energy=S.player.maxEnergy; S.player.telkin=0; S.player.weak=0;
+    S.enemy={name:cfg.name,sub:cfg.sub,hp:cfg.hp,maxHp:cfg.hp,block:0,ruya:0,ruyaT:0,kind:cfg.kind,pattern:cfg.pattern,base:cfg.base,step:cfg.step,spiral:0};
+    S.deck=buildDeck(); S.hand=[]; S.discard=[];
+    draw(5); setIntent();
+    log('Direnç '+(index+1)+': '+cfg.name+'.');
+    el('rew').classList.remove('show');
+    render();
+  }
+  function draw(n){
+    for(let i=0;i<n;i++){
+      if(S.deck.length===0){ if(S.discard.length===0) return; S.deck=S.discard; S.discard=[]; shuffle(S.deck); }
+      S.hand.push(S.deck.pop());
+    }
+  }
+  function setIntent(){
+    const e=S.enemy;
+    if(e.kind==='pattern') e.intent=e.pattern[S.pat%e.pattern.length];
+    else if(e.kind==='escalate') e.intent={type:'attack',value:e.base+e.step*e.spiral,spiral:true};
+  }
+  function dmgEnemy(a){let d=a;if(S.enemy.block>0){const ab=Math.min(S.enemy.block,d);S.enemy.block-=ab;d-=ab;}S.enemy.hp=Math.max(0,S.enemy.hp-d);}
+  function dmgPlayer(a){let d=a;if(S.player.block>0){const ab=Math.min(S.player.block,d);S.player.block-=ab;d-=ab;}S.player.hp=Math.max(0,S.player.hp-d);}
+
+  function playCard(idx){
+    if(S.over||S.flow!=='combat') return;
+    const c=S.hand[idx]; if(!c) return;
+    if(S.player.energy<c.cost){ log('Yetersiz Ego Puanı.'); return; }
+    S.player.energy-=c.cost;
+    if(!c.revealed){ c.revealed=true; c.gizli=false; }
+    let parts=[];
+    if(c.block){ S.player.block+=c.block; parts.push(c.block+' savunma'); }
+    if(c.gainEnergy){ S.player.energy+=c.gainEnergy; parts.push('+'+c.gainEnergy+' Ego'); }
+    if(c.dmg){
+      let d=c.dmg;
+      if(S.player.telkin>0 && c.type==='Saldırı'){ d+=S.player.telkin; parts.push('(+'+S.player.telkin+' telkin)'); S.player.telkin=0; }
+      if(S.player.weak>0 && c.type==='Saldırı'){ d=Math.floor(d*0.67); parts.push('(zayıf)'); }
+      const hits=c.hits||1; for(let h=0;h<hits;h++) dmgEnemy(d);
+      parts.push(d+' hasar'+(hits>1?(' ×'+hits):''));
+    }
+    if(c.self){ dmgPlayer(c.self); parts.push('kendine '+c.self); }
+    if(c.ruya){ S.enemy.ruya=c.ruya.dmg; S.enemy.ruyaT=c.ruya.turns; parts.push('rüya işlendi'); }
+    if(c.addTelkin){ S.player.telkin+=c.addTelkin; parts.push('telkin +'+c.addTelkin); }
+    S.hand.splice(idx,1); S.discard.push(c);
+    if(c.draw) draw(c.draw);
+    log(c.name+' — '+parts.join(', ')+'.');
+    checkEnd(); if(!S.over) render();
+  }
+
+  function endTurn(){
+    if(S.over||S.flow!=='combat') return;
+    while(S.hand.length) S.discard.push(S.hand.pop());
+    if(S.enemy.ruyaT>0 && S.enemy.hp>0){
+      dmgEnemy(S.enemy.ruya); S.enemy.ruyaT--;
+      log('Rüya imgesi sızıyor — '+S.enemy.ruya+' hasar.');
+      if(S.enemy.ruyaT===0) S.enemy.ruya=0;
+    }
+    checkEnd(); if(S.over){ render(); return; }
+    const it=S.enemy.intent;
+    if(it.type==='attack'){ dmgPlayer(it.value); log(S.enemy.name+' vurdu — '+it.value+(it.charged?' (biriktirilmiş)':'')+(it.spiral?' (derinleşti)':'')+' hasar.'); }
+    else if(it.type==='block'){ S.enemy.block+=it.value; log(S.enemy.name+' içine kapandı — '+it.value+' savunma.'); }
+    else if(it.type==='charge'){ log(S.enemy.name+' bir şey biriktiriyor...'); }
+    else if(it.type==='debuff'){ S.player.weak=Math.max(S.player.weak,it.value); if(it.dmg) dmgPlayer(it.dmg); log(S.enemy.name+' kuşku düşürdü — Zayıflık '+it.value+' tur'+(it.dmg?(' + '+it.dmg+' hasar'):'')+'.'); }
+    checkEnd(); if(S.over){ render(); return; }
+    S.pat++; if(S.enemy.kind==='escalate') S.enemy.spiral++;
+    setIntent(); S.turn++;
+    if(S.player.weak>0) S.player.weak--;
+    S.player.block=0; S.player.energy=S.player.maxEnergy;
+    draw(5); render();
+  }
+
+  function checkEnd(){
+    if(S.over) return;
+    if(S.enemy.hp<=0){
+      S.over=true;
+      if(S.fightIndex < ENEMIES.length-1) offerReward();
+      else { S.flow='runwon'; showOverlay('win','Koşu tamamlandı', S.player.hp+' bütünlükle bitirdin. Beş direnç, hiç sürpriz, hiç ahlaki ekran. Soru: koşu boyunca "bir el daha" mı dedin?'); }
+    } else if(S.player.hp<=0){
+      S.over=true; S.flow='runlost';
+      showOverlay('lose','Tükendi','Direnç '+(S.fightIndex+1)+'\'de düştün. Tekrar dene — not al: hangi dövüşte sıkıldın, hangisinde gerçekten gerildin?');
+    }
+  }
+
+  function offerReward(){
+    S.flow='reward';
+    const before=S.player.hp; S.player.hp=Math.min(S.player.maxHp,S.player.hp+5);
+    const healed=S.player.hp-before;
+    let pool=REWARD_POOL.slice(); shuffle(pool); const opts=pool.slice(0,3);
+    el('rewHeal').textContent=(healed>0?('+'+healed+' bütünlük. '):'')+'Bir kart ekle:';
+    const row=el('rewRow'); row.innerHTML='';
+    opts.forEach(key=>{ const c=CARDS[key]; const d=document.createElement('div'); d.className='card type-'+c.type;
+      d.innerHTML='<div class="cost">'+c.cost+'</div><div class="ctype">'+c.type+'</div><div class="cname">'+c.name+'</div><div class="ctext">'+c.text+'</div>';
+      d.addEventListener('click',()=>takeReward(key)); row.appendChild(d); });
+    el('rew').classList.add('show');
+    render();
+  }
+  function takeReward(key){ if(key) S.masterDeck.push(key); el('rew').classList.remove('show'); startFight(S.fightIndex+1); }
+
+  function renderTrack(){
+    const t=el('track'); t.innerHTML='';
+    ENEMIES.forEach((e,i)=>{
+      const n=document.createElement('span');
+      let cl='node'; if(i<S.fightIndex)cl+=' done'; else if(i===S.fightIndex)cl+=' cur';
+      n.className=cl; n.textContent=(i<S.fightIndex?'✓ ':'')+(i+1)+' · '+e.name;
+      t.appendChild(n);
+      if(i<ENEMIES.length-1){ const d=document.createElement('span'); d.className='node'; d.style.border='none'; d.style.background='none'; d.style.padding='0'; d.innerHTML='<span class="dash">—</span>'; t.appendChild(d); }
+    });
+  }
+
+  function render(){
+    el('turnLbl').textContent='Tur '+S.turn;
+    renderTrack();
+    el('eName').textContent=S.enemy.name; el('eSub').textContent=S.enemy.sub;
+    const pct=(S.enemy.hp/S.enemy.maxHp)*100;
+    el('eBar').style.width=pct+'%'; el('eBarNum').textContent=S.enemy.hp+' / '+S.enemy.maxHp;
+    const it=S.enemy.intent; const iEl=el('intent'); let cls='intent',lbl='niyet',val='—';
+    if(it){ if(it.type==='attack'){cls+=' atk';lbl='saldırı';val='⚔ '+it.value;}
+      else if(it.type==='block'){cls+=' def';lbl='savunma';val='🛡 '+it.value;}
+      else if(it.type==='charge'){cls+=' charge';lbl='birikim';val='🌀';}
+      else if(it.type==='debuff'){cls+=' debuff';lbl='kuşku';val='✦'+(it.dmg?(' '+it.dmg):'');} }
+    iEl.className=cls; iEl.innerHTML='<div class="lbl">'+lbl+'</div><div class="val">'+val+'</div>';
+    let eb=''; if(S.enemy.block>0) eb+='<span class="badge b-block">🛡 '+S.enemy.block+'</span>';
+    if(S.enemy.ruyaT>0) eb+='<span class="badge b-ruya">rüya '+S.enemy.ruya+'×'+S.enemy.ruyaT+'</span>';
+    el('eBadges').innerHTML=eb;
+    el('pHp').textContent=S.player.hp; el('pBlock').textContent=S.player.block;
+    let pips=''; for(let i=0;i<S.player.maxEnergy;i++) pips+='<span class="pip'+(i<S.player.energy?' on':'')+'"></span>';
+    el('pPips').innerHTML=pips;
+    const tEl=el('telkin'); if(S.player.telkin>0){tEl.style.display='inline-block';tEl.textContent='telkin +'+S.player.telkin;} else tEl.style.display='none';
+    const wEl=el('pweak'); if(S.player.weak>0){wEl.style.display='inline-block';wEl.textContent='zayıflık '+S.player.weak;} else wEl.style.display='none';
+    el('piles').textContent='deste '+S.deck.length+' · atık '+S.discard.length;
+    const h=el('hand'); h.innerHTML='';
+    S.hand.forEach((c,idx)=>{
+      const d=document.createElement('div');
+      const unaff=S.player.energy<c.cost;
+      if(!c.revealed){ d.className='card gizli'+(unaff?' unaff':''); d.innerHTML='<div class="cost">?</div><div class="ctype">gizli kart</div><div class="qmark">?</div><div class="ctext">Oynayınca açılır.</div>'; }
+      else { d.className='card type-'+c.type+(unaff?' unaff':''); d.innerHTML='<div class="cost">'+c.cost+'</div><div class="ctype">'+c.type+'</div><div class="cname">'+c.name+'</div><div class="ctext">'+c.text+'</div>'; }
+      d.addEventListener('click',()=>playCard(idx)); h.appendChild(d);
+    });
+  }
+  function showOverlay(kind,title,text){
+    el('ovTitle').innerHTML='<span class="'+(kind==='win'?'win':'lose')+'">'+title+'</span>';
+    el('ovText').textContent=text; el('overlay').classList.add('show');
+  }
+  el('endBtn').addEventListener('click',endTurn);
+  el('rewSkip').addEventListener('click',()=>takeReward(null));
+  el('restart').addEventListener('click',newRun);
+  newRun();
+})();
+</script>
+</body>
+</html>
